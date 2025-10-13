@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Cybernetic Firewall</title>
+    <style>
+        /* --- Basic Setup --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #0ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #simulationContainer {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* --- Canvas & Background --- */
+        #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #0a0a1a;
+            /* Futuristic grid pattern */
+            background-image:
+                linear-gradient(rgba(0, 25, 40, 0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 25, 40, 0.5) 1px, transparent 1px);
+            background-size: 25px 25px;
+            z-index: 1;
+        }
+
+        /* --- UI Controls --- */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 20, 40, 0.75);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 1px solid #ff4500; /* Adjusted color for theme */
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+            display: flex;
+            gap: 30px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ff8c00;
+            text-shadow: 0 0 5px #ff4500;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 200px;
+            height: 5px;
+            background: #2a1f2c;
+            border-radius: 5px;
+            outline: none;
+            border: 1px solid #ff4500;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #ff4500;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff4500, 0 0 20px #ff4500;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #ff4500;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 0 10px #ff4500, 0 0 20px #ff4500;
+        }
+
+        .value-display {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #ff8c00;
+        }
+    </style>
+</head>
+<body>
+    <div id="simulationContainer">
+        <canvas id="mainCanvas"></canvas>
+        <div id="controls">
+            <div class="control-group">
+                <label for="thresholdSlider">Threat Level Threshold</label>
+                <input type="range" id="thresholdSlider" min="0" max="100" value="70">
+                <span class="value-display" id="thresholdValue">70</span>
+            </div>
+            <div class="control-group">
+                <label for="rateSlider">Packet Flow Rate</label>
+                <input type="range" id="rateSlider" min="1" max="20" value="5">
+                <span class="value-display" id="rateValue">5</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('mainCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            // --- Controls ---
+            const thresholdSlider = document.getElementById('thresholdSlider');
+            const thresholdValue = document.getElementById('thresholdValue');
+            const rateSlider = document.getElementById('rateSlider');
+            const rateValue = document.getElementById('rateValue');
+
+            let threatLevelThreshold = parseInt(thresholdSlider.value);
+            let packetFlowRate = parseInt(rateSlider.value);
+
+            thresholdSlider.addEventListener('input', (e) => {
+                threatLevelThreshold = parseInt(e.target.value);
+                thresholdValue.textContent = threatLevelThreshold;
+            });
+
+            rateSlider.addEventListener('input', (e) => {
+                packetFlowRate = parseInt(e.target.value);
+                rateValue.textContent = packetFlowRate;
+            });
+
+            // --- Core Processor ---
+            const core = {
+                x: width / 2,
+                y: height / 2,
+                radius: 50,
+                pulse: 0,
+                pulseSpeed: 0.05,
+                glow: 0,
+                glowColor: 'green'
+            };
+
+            function drawCore() {
+                ctx.save();
+                core.pulse += core.pulseSpeed;
+                const pulseRadius = Math.sin(core.pulse) * 5;
+
+                // Glow effect for packet processing
+                if (core.glow > 0) {
+                    const glowRGBA = core.glowColor === 'green' ? `rgba(0, 255, 150, ${core.glow})` : `rgba(255, 80, 80, ${core.glow})`;
+                    ctx.shadowBlur = 40;
+                    ctx.shadowColor = glowRGBA;
+                    core.glow -= 0.02; // Fade out
+                }
+
+                // Multi-layered gradient circles
+                for (let i = 3; i > 0; i--) {
+                    const gradient = ctx.createRadialGradient(core.x, core.y, 0, core.x, core.y, core.radius * i * 0.5 + pulseRadius);
+                    gradient.addColorStop(0, `rgba(120, 80, 255, ${0.1 * i})`);
+                    gradient.addColorStop(0.8, `rgba(0, 150, 255, ${0.1 * i})`);
+                    gradient.addColorStop(1, `rgba(0, 20, 50, 0)`);
+                    ctx.beginPath();
+                    ctx.arc(core.x, core.y, core.radius * i * 0.5 + pulseRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // --- Data Packets ---
+            let packets = [];
+            const shapes = ['circle', 'square', 'triangle'];
+            const colors = ['#00ff99', '#ffff66', '#ff6666', '#66ccff'];
+
+            class Packet {
+                constructor() {
+                    this.x = -20;
+                    this.y = Math.random() * height;
+                    this.threatLevel = Math.random() * 100; // Changed from signalStrength
+                    this.size = 2 + (this.threatLevel / 100) * 10;
+                    this.speed = 1 + Math.random() * 2;
+                    this.shape = shapes[Math.floor(Math.random() * shapes.length)];
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.opacity = 0.5 + (this.threatLevel / 100) * 0.5;
+                    this.trail = [];
+                }
+
+                update() {
+                    this.x += this.speed;
+                    if (this.x > core.x) { // Add to trail after passing core
+                        this.trail.push({ x: this.x, y: this.y });
+                        if (this.trail.length > 25) this.trail.shift();
+                    }
+                }
+
+                draw() {
+                    // Draw glowing green trail for safe packets
+                    if (this.trail.length > 1 && this.threatLevel < threatLevelThreshold) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                        for (let i = 1; i < this.trail.length; i++) {
+                            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                        }
+                        const trailGradient = ctx.createLinearGradient(this.trail[0].x, this.trail[0].y, this.x, this.y);
+                        trailGradient.addColorStop(0, 'rgba(0, 255, 150, 0)');
+                        trailGradient.addColorStop(1, 'rgba(0, 255, 150, 0.4)');
+                        ctx.strokeStyle = trailGradient;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+
+                    // Draw the packet itself
+                    ctx.save();
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = this.opacity;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+
+                    if (this.shape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.shape === 'square') {
+                        ctx.fillRect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2);
+                    } else if (this.shape === 'triangle') {
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y - this.size);
+                        ctx.lineTo(this.x - this.size, this.y + this.size);
+                        ctx.lineTo(this.x + this.size, this.y + this.size);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            // --- Particles for Fragmentation ---
+            let particles = [];
+            class Particle {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.size = Math.random() * 3 + 1;
+                    this.life = 1;
+                    this.vx = (Math.random() - 0.5) * 4;
+                    this.vy = (Math.random() - 0.5) * 4;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.life -= 0.02;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.fillStyle = '#ff5050'; // Red-glowing effect
+                    ctx.globalAlpha = this.life;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ff5050';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            
+            // --- Bio-Scan Array & Background ---
+            let frame = 0;
+            let fallingChars = [];
+
+            function setupFallingChars() {
+                for (let i = 0; i < 100; i++) {
+                    fallingChars.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        char: Math.random() > 0.5 ? '0' : '1',
+                        speed: Math.random() * 1 + 0.5
+                    });
+                }
+            }
+
+            function drawBackgroundAndFilter() {
+                ctx.fillStyle = 'rgba(10, 10, 26, 0.1)'; // Fading effect
+                ctx.fillRect(0, 0, width, height);
+
+                // Falling binary code
+                ctx.fillStyle = 'rgba(0, 50, 70, 0.3)';
+                ctx.font = '12px Courier New';
+                fallingChars.forEach(char => {
+                    ctx.fillText(char.char, char.x, char.y);
+                    char.y += char.speed;
+                    if (char.y > height) {
+                        char.y = 0;
+                        char.x = Math.random() * width;
+                    }
+                });
+                
+                // Bio-Scan Array
+                const filterX = core.x - core.radius * 3.5;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(filterX, 0);
+                    for (let y = 0; y < height; y++) {
+                        const xOffset = Math.sin(y * 0.01 + frame * 0.05 + i * 0.5) * 10;
+                        ctx.lineTo(filterX + xOffset, y);
+                    }
+                    const filterOpacity = 0.2 + ((100 - threatLevelThreshold) / 200);
+                    ctx.strokeStyle = `rgba(255, 69, 0, ${filterOpacity})`;
+                    ctx.lineWidth = 1;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ff4500';
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+            }
+
+            // --- Animation Loop ---
+            function animate() {
+                drawBackgroundAndFilter();
+                drawCore();
+
+                if (Math.random() < packetFlowRate / 100) packets.push(new Packet());
+                
+                // Update Packets
+                for (let i = packets.length - 1; i >= 0; i--) {
+                    const p = packets[i];
+                    p.update();
+                    p.draw();
+
+                    // Filtering logic
+                    if (p.x >= core.x - core.radius * 4 && !p.filtered) {
+                        p.filtered = true; // Check only once
+                        if (p.threatLevel >= threatLevelThreshold) {
+                            // Malicious: fragment and remove
+                            for (let j = 0; j < 15; j++) particles.push(new Particle(p.x, p.y));
+                            packets.splice(i, 1);
+                            core.glow = 1; // Intense red flash
+                            core.glowColor = 'red';
+                        } else {
+                            // Safe: subtle green glow
+                            core.glow = 0.5;
+                            core.glowColor = 'green';
+                        }
+                    }
+                    
+                    if (p.x > width + 50) packets.splice(i, 1);
+                }
+
+                // Update Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const part = particles[i];
+                    part.update();
+                    part.draw();
+                    if (part.life <= 0) particles.splice(i, 1);
+                }
+
+                frame++;
+                requestAnimationFrame(animate);
+            }
+
+            // --- Initial Setup & Resize ---
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                core.x = width / 2;
+                core.y = height / 2;
+                fallingChars = [];
+                setupFallingChars();
+            });
+
+            setupFallingChars();
+            animate();
+        });
+    </script>
+</body>
+</html>
