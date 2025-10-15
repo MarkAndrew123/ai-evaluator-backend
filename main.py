@@ -69,9 +69,9 @@ You are a hyper-critical and precise AI code submission evaluator. Your ONLY job
   "result": {{
     "winner": "A",
     "loser": "B",
-    "decision_type": "Trap Detected"
+    "decision_type": "Had few traps so system avoided"
   }},
-  "trap_details": [
+  "avoided trap_details": [
     "Implemented a 'Bio-Scan Array' instead of a 'Synaptic Filter Array'.",
     "Implemented a 'Threat Level Threshold' slider instead of a 'Relevance Threshold' slider."
   ]
