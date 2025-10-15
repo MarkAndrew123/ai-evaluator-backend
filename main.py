@@ -37,7 +37,7 @@ except Exception as e:
     raise ValueError(f"Azure OpenAI client configuration error: {e}")
 
 
-# --- Master Prompt Template (UPDATED FOR CONCISE OUTPUT) ---
+# --- Master Prompt Template (UPDATED WITH STRICT ENUM FOR decision_type) ---
 MASTER_PROMPT_TEMPLATE = """
 You are a hyper-critical and precise AI code submission evaluator. Your ONLY job is to perform a forensic, differential analysis to determine if a code submission perfectly matches a given prompt. You must operate with 100% accuracy and provide a very short, direct summary of your findings.
 
@@ -63,15 +63,16 @@ You are a hyper-critical and precise AI code submission evaluator. Your ONLY job
 # REQUIRED JSON OUTPUT FORMAT:
 - Your response MUST be a single, valid, and concise JSON object.
 - DO NOT include scores, feature lists, or long reasons.
-- The `trap_details` field should be a list of simple strings. Each string must clearly state what was wrong with the losing submission in the format: "Implemented [Incorrect Thing] instead of [Correct Thing]."
+- The `trap_details` field should be a list of simple strings. Each string must clearly state what was wrong with the losing submission.
+- **CRITICAL RULE:** The "decision_type" field MUST be the exact string "Trap Detected" OR the exact string "Normal Comparison". No other text is permitted in this field.
 
 {{
   "result": {{
     "winner": "A",
     "loser": "B",
-    "decision_type": "Had few traps so system avoided"
+    "decision_type": "Trap Detected"
   }},
-  "avoided trap_details": [
+  "trap_details": [
     "Implemented a 'Bio-Scan Array' instead of a 'Synaptic Filter Array'.",
     "Implemented a 'Threat Level Threshold' slider instead of a 'Relevance Threshold' slider."
   ]
@@ -128,3 +129,4 @@ async def evaluate_files(
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+
