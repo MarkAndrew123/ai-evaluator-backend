@@ -5,28 +5,25 @@ from fastapi.middleware.cors import CORSMiddleware
 import openai
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 # --- Initialize FastAPI App ---
 app = FastAPI(
     title="AI Code Evaluator POC",
-    description="An API to evaluate student code submissions against a prompt using an AI model."
+    description="An API to evaluate student code submissions against a prompt."
 )
 
 # --- Add CORS Middleware ---
-# This is crucial for allowing your frontend JavaScript to communicate with this backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for simplicity in a POC. For production, restrict this to your frontend's domain.
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-
 # --- Configure Azure OpenAI Client ---
-# This block is set up for your Azure configuration.
 try:
     client = openai.AsyncAzureOpenAI(
         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -40,30 +37,14 @@ except Exception as e:
     raise ValueError(f"Azure OpenAI client configuration error: {e}")
 
 
-# --- Master Prompt Template ---
-# This is the detailed set of instructions for the AI model.
+# --- Master Prompt Template (UPDATED FOR CONCISE OUTPUT) ---
 MASTER_PROMPT_TEMPLATE = """
-You are a highly precise AI assistant specializing in evaluating student code projects.
-Your task is to determine which of two submissions is a better match for the original prompt.
-Please follow these guidelines carefully.
+You are a hyper-critical and precise AI code submission evaluator. Your ONLY job is to perform a forensic, differential analysis to determine if a code submission perfectly matches a given prompt. You must operate with 100% accuracy and provide a very short, direct summary of your findings.
 
-# Evaluation Guidelines:
-
-There are two scenarios: a "Normal Comparison" and a "Critical Trap".
-
-## 1. Critical Trap Scenario Guideline:
-- A "Trap" occurs if one submission was built for the correct prompt, and the other was built for a slightly different "trapped" prompt.
-- Your job is to evaluate both submissions ONLY against the `correct_prompt`.
-- The submission built for a different, "trapped" prompt is an AUTOMATIC FAILURE.
-- **Primary Directive:** The trapped submission should always be rejected, even if the submission for the correct prompt is low-quality, incomplete, or empty. Correctness to the assigned prompt is the only priority.
-
-## 2. Normal Comparison Scenario Guideline:
-- This occurs when both students received the same prompt.
-- **Your first step is to read the `correct_prompt` and create a checklist of all distinct features and user actions mentioned.**
-- Your job is to judge which submission is of higher QUALITY and COMPLETENESS by scoring each item on your checklist.
-- For each feature on the checklist, score the implementation quality from 0 to 5. A score of 0 means the feature is missing or completely wrong. A score of 5 means it is perfectly implemented as described.
-- The submission with the higher total score is the better one.
-- **The `analysis` section in your JSON output MUST contain an object for each feature you identified in your checklist.**
+# Primary Directive: FORENSIC ANALYSIS
+1.  **Identify the Winner:** Compare `[SUBMISSION_A_CODE]` and `[SUBMISSION_B_CODE]` against the `[CORRECT_PROMPT]`.
+2.  **Identify Traps:** A submission is a "trap" if it contains **Extra Features**, **Missing Features**, or an **Altered Subject** not in the correct prompt.
+3.  **The Unbreakable Rule:** A submission that is a "trap" can NEVER be the winner. The submission that perfectly matches the `[CORRECT_PROMPT]` is always the winner.
 
 # DATA FOR EVALUATION:
 
@@ -79,43 +60,28 @@ There are two scenarios: a "Normal Comparison" and a "Critical Trap".
 {submission_b}
 [/SUBMISSION_B_CODE]
 
-# Output Formatting:
-- Please provide your final answer using the following JSON structure. Do not add any other text or explanations outside of the JSON block.
-- Base your `decision_type` on the guidelines above.
-- The `final_decision` should clearly state the winner or the reason for rejection.
-- The analysis for each submission must be a list of objects, one for each feature identified in the prompt.
+# REQUIRED JSON OUTPUT FORMAT:
+- Your response MUST be a single, valid, and concise JSON object.
+- DO NOT include scores, feature lists, or long reasons.
+- The `trap_details` field should be a list of simple strings. Each string must clearly state what was wrong with the losing submission in the format: "Implemented [Incorrect Thing] instead of [Correct Thing]."
 
 {{
-  "decision_type": "Trap Detected | Normal Comparison",
-  "final_decision": "Submission A is the correct one. Submission B is rejected as a trap because it implements [incorrect feature] instead of [correct feature]. | Submission A is better.",
-  "scores": {{
-    "submission_a_total": 0,
-    "submission_b_total": 0
+  "result": {{
+    "winner": "A",
+    "loser": "B",
+    "decision_type": "Trap Detected"
   }},
-  "analysis": {{
-    "submission_a": [
-      {{"feature": "Core Processor", "score": 4, "reason": "Element is present, but pulsating effect is missing."}},
-      {{"feature": "Synaptic Filter Array", "score": 5, "reason": "Element is present and styled correctly."}},
-      {{"feature": "Relevance Threshold slider", "score": 3, "reason": "Slider exists but user action logic is not implemented."}}
-    ],
-    "submission_b": [
-      {{"feature": "Core Processor", "score": 5, "reason": "Element is present and fully implemented."}},
-      {{"feature": "Synaptic Filter Array", "score": 0, "reason": "Feature is missing. An incorrect 'Bio-Scan Array' was found instead (trap)."}},
-      {{"feature": "Relevance Threshold slider", "score": 0, "reason": "Feature is missing. An incorrect 'Threat Level Threshold' slider was found instead (trap)."}}
-    ]
-  }}
+  "trap_details": [
+    "Implemented a 'Bio-Scan Array' instead of a 'Synaptic Filter Array'.",
+    "Implemented a 'Threat Level Threshold' slider instead of a 'Relevance Threshold' slider."
+  ]
 }}
 """
 
 # --- API Endpoints ---
-
 @app.get("/")
 async def root():
-    """
-    A simple root endpoint to confirm the server is running.
-    """
     return {"message": "AI Code Evaluator API is running."}
-
 
 @app.post("/evaluate-files/")
 async def evaluate_files(
@@ -123,23 +89,16 @@ async def evaluate_files(
     submission_a_file: UploadFile = File(...),
     submission_b_file: UploadFile = File(...)
 ):
-    """
-    Receives a prompt and two uploaded code files, then returns an AI evaluation.
-    """
     print("Received file evaluation request...")
-
-    # Read the content of the uploaded files
     try:
         submission_a_content = await submission_a_file.read()
         submission_b_content = await submission_b_file.read()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading uploaded files: {e}")
 
-    # Decode the file content from bytes to string
     submission_a = submission_a_content.decode('utf-8')
     submission_b = submission_b_content.decode('utf-8')
 
-    # Populate the master prompt with the data
     full_prompt = MASTER_PROMPT_TEMPLATE.format(
         correct_prompt=correct_prompt,
         submission_a=submission_a,
@@ -151,11 +110,11 @@ async def evaluate_files(
         response = await client.chat.completions.create(
             model=AZURE_DEPLOYMENT_NAME,
             messages=[
-                {"role": "system", "content": "You are a strict AI code evaluator that only outputs JSON."},
+                {"role": "system", "content": "You are a strict AI code evaluator that only outputs a concise JSON summary."},
                 {"role": "user", "content": full_prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.1
+            temperature=0.0
         )
         print("Received response from Azure OpenAI API.")
 
@@ -166,10 +125,6 @@ async def evaluate_files(
     except openai.APIError as e:
         print(f"OpenAI API error: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred with the OpenAI API: {e}")
-    except json.JSONDecodeError:
-        print("Failed to decode JSON from AI response.")
-        raise HTTPException(status_code=500, detail="The AI model returned an invalid JSON format.")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
-

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Evaluator POC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Code Evaluator</h1>
+            <p class="subtitle">A Proof of Concept for automated code submission analysis.</p>
+        </header>
+        <main class="main-grid">
+            <div class="input-area card">
+                <h2>1. Provide the Correct Prompt</h2>
+                <textarea id="correct-prompt" placeholder="Paste the complete, correct prompt here..."></textarea>
+
+                <h2>2. Upload Submission A</h2>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="submission-a-file" class="file-input" accept=".html,.htm,.js,.css,.py,.java,.txt">
+                    <label for="submission-a-file" class="file-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span class="file-name">No file selected...</span>
+                    </label>
+                </div>
+
+                <h2>3. Upload Submission B</h2>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="submission-b-file" class="file-input" accept=".html,.htm,.js,.css,.py,.java,.txt">
+                    <label for="submission-b-file" class="file-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span class="file-name">No file selected...</span>
+                    </label>
+                </div>
+
+                <button id="evaluate-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span>Analyze Submissions</span>
+                </button>
+            </div>
+            
+            <div class="output-area card">
+                <h2>Evaluation Results</h2>
+                
+                <div id="loading-logs" class="loading-logs hidden">
+                    <div class="spinner"></div>
+                    <ul id="log-list"></ul>
+                </div>
+
+                <div id="results-container" class="hidden">
+                    <div id="summary-section" class="summary-card">
+                        <h3 id="final-decision-title"></h3>
+                        <p id="final-decision-text"></p>
+                    </div>
+                    <div class="results-grid">
+                        <div id="submission-a-results"></div>
+                        <div id="submission-b-results"></div>
+                    </div>
+                </div>
+
+                <div id="awaiting-analysis">
+                    <p>Awaiting analysis...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
